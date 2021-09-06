@@ -1,4 +1,4 @@
-import { calcHealthLevel, calcTileType } from './utils';
+import calcTileType, { calcHealthLevel } from './utils';
 
 export default class GamePlay {
   constructor() {
@@ -79,10 +79,10 @@ export default class GamePlay {
       charEl.classList.add('character', position.character.type);
 
       const healthEl = document.createElement('div');
-      healthEl.classList.add('health-level');
+      healthEl.classList.add('health-level', position.character.level);
 
       const healthIndicatorEl = document.createElement('div');
-      healthIndicatorEl.classList.add('health-level-indicator', `health-level-indicator-${calcHealthLevel(position.character.health)}`);
+      healthIndicatorEl.classList.add('health-level-indicator', `health-level-indicator-${calcHealthLevel(position.character.health)}`, position.character.health);
       healthIndicatorEl.style.width = `${position.character.health}%`;
       healthEl.appendChild(healthIndicatorEl);
 
