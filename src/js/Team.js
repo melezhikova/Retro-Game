@@ -6,17 +6,18 @@ import Undead from './undead';
 import Vampire from './vampire';
 
 export default class Team {
-
-    gamer = {
-        types: [Bowman, Swordsman, Daemon, Magician, Undead, Vampire],
-        player: 'gamer'
-    }
-    gamerBeginer = {
-        types: [Bowman, Swordsman],
-        player: 'gamer'
-    }
-    pc = {
-        types: [Bowman, Swordsman, Daemon, Magician, Undead, Vampire],
-        player: 'pc'
-    }
+  constructor() {
+    this.gamer = {
+      types: [Bowman, Swordsman, Magician],
+      player: 'gamer',
+    };
+    this.gamerBeginer = {
+      types: [Bowman, Swordsman],
+      player: 'gamer',
+    };
+    this.pc = {
+      types: [Daemon, Undead, Vampire],
+      player: 'npc',
+    };
+  }
 }
