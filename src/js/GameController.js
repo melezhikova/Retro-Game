@@ -12,7 +12,6 @@ import GamePlay from './GamePlay';
 import GameState from './GameState';
 import cursors from './cursors';
 
-
 export default class GameController {
   constructor(gamePlay, stateService) {
     this.gamePlay = gamePlay;
@@ -21,17 +20,15 @@ export default class GameController {
     this.scores = 0;
     this.level = 1;
     this.chosenCharacterCell = -1;
-    if (localStorage.getItem('state')) {
-      this.gameState = new GameState.from(this.stateService.load());
-    } else {
-      this.gameState = new GameState();
+    if (this.stateService.storage.getItem('state')) {
+      GameState.from(this.stateService.load());
     }
   }
 
   getPositionedCharacters(player, quantity) {
     let level;
-    if (this.gameState && this.gameState.level) {
-      level = this.gameState.level;
+    if (GameState && GameState.level) {
+      level = GameState.level;
     } else {
       level = this.level;
     }
@@ -76,8 +73,8 @@ export default class GameController {
 
   updateScores() {
     const scoresBox = document.querySelector('.scores');
-    if (this.gameState && this.gameState.scores) {
-      scoresBox.innerText = `Scores: ${this.gameState.scores}`;
+    if (GameState && GameState.scores) {
+      scoresBox.innerText = `Scores: ${GameState.scores}`;
     } else {
       scoresBox.innerText = `Scores: ${this.scores}`;
     }
@@ -85,8 +82,8 @@ export default class GameController {
 
   updateLevel() {
     const levelBox = document.querySelector('.level');
-    if (this.gameState && this.gameState.level) {
-      levelBox.innerText = `Level: ${this.gameState.level}`;
+    if (GameState && GameState.level) {
+      levelBox.innerText = `Level: ${GameState.level}`;
     } else {
       levelBox.innerText = `Level: ${this.level}`;
     }
@@ -95,8 +92,8 @@ export default class GameController {
   init() {
     // TODO: add event listeners to gamePlay events
     // TODO: load saved stated from stateService
-    if (this.gameState && this.gameState.level) {
-      this.drawTheme(this.gameState.level);
+    if (GameState && GameState.level) {
+      this.drawTheme(GameState.level);
     } else {
       this.gamePlay.drawUi(themes.prairie);
     }
@@ -104,8 +101,8 @@ export default class GameController {
     this.updateLevel();
     this.updateScores();
 
-    if (this.gameState && this.gameState.chars) {
-      this.jointTeam = [...this.gameState.chars];
+    if (GameState.chars && GameState.chars.length > 0) {
+      this.jointTeam = [...GameState.chars];
     } else {
       const gamerTeam = this.getPositionedCharacters('gamerBeginer', 2);
       const pcTeam = this.getPositionedCharacters('npc', 2);
@@ -115,26 +112,27 @@ export default class GameController {
 
     this.showCharInfo();
 
-    if (!localStorage.getItem('state')) {
-      this.stateService.save({
-        chars: this.jointTeam,
-        activePlayer: 'gamer',
-        level: this.level,
-        scores: this.scores,
-      });
-      this.gameState = new GameState.from(this.stateService.load());
+    if (!GameState.chars) {
+      this.saveState('gamer');
     }
 
     this.gamePlay.addNewGameListener(this.onNewGameClick.bind(this));
     this.gamePlay.addSaveGameListener(this.onSaveGameClick.bind(this));
     this.gamePlay.addLoadGameListener(this.onLoadGameClick.bind(this));
 
-    if (this.gameState && this.gameState.activePlayer === 'npc') {
+    if (GameState && GameState.activePlayer === 'npc') {
       this.npcActions();
     }
-    console.log(this.gamePlay);
-    console.log(this.stateService);
-    console.log(this.gameState);
+  }
+
+  saveState(player) {
+    this.stateService.save({
+      chars: this.jointTeam,
+      activePlayer: player,
+      level: this.level,
+      scores: this.scores,
+    });
+    GameState.from(this.stateService.load());
   }
 
   showCharInfo() {
@@ -144,21 +142,27 @@ export default class GameController {
   }
 
   onNewGameClick() {
-    this.scores = this.gameState.scores;
-    localStorage.removeItem('state');
-    this.gameState = new GameState();
+    this.scores = GameState.scores;
+    GameState.activePlayer = 'gamer';
+    GameState.chars = [];
+    GameState.level = 1;
     this.chosenCharacterCell = -1;
     this.init();
   }
 
   onSaveGameClick() {
-    this.stateService.userSave(this.gameState);
+    this.stateService.userSave({
+      chars: this.jointTeam,
+      activePlayer: 'gamer',
+      level: this.level,
+      scores: this.scores,
+    });
     GamePlay.showMessage('Игра сохранена');
   }
 
   onLoadGameClick() {
     if (this.stateService.storage.getItem('UserState')) {
-      this.gameState = new GameState.from(this.stateService.userLoad());
+      GameState.from(this.stateService.userLoad());
       this.chosenCharacterCell = -1;
       this.init();
     } else {
@@ -167,36 +171,38 @@ export default class GameController {
   }
 
   checkLevelUp() {
-    if (this.gameState.activePlayer === 'gamer') {
+    if (GameState.activePlayer === 'gamer') {
       if (this.countChars('npc') > 0) {
-        this.gameState.activePlayer = 'npc';
+        GameState.activePlayer = 'npc';
+        this.saveState('npc');
         this.npcActions();
       } else {
         let scoreLevel = 0;
-        this.gameState.chars.forEach((item) => {
+        GameState.chars.forEach((item) => {
           if (item.character.health > 0) {
             scoreLevel += item.character.health;
           }
         });
-        this.gameState.scores += scoreLevel;
+        GameState.scores += scoreLevel;
 
-        if (this.gameState.level < 4) {
-          this.gameState.level += 1;
+        if (GameState.level < 4) {
+          GameState.level += 1;
           this.levelUp();
         } else {
+          this.saveState('gamer');
           GamePlay.showMessage('Поздравляю! Вы выиграли!');
           this.endGame();
         }
       }
     } else if (this.countChars('gamer') > 0) {
-      this.gameState.activePlayer = 'gamer';
+      GameState.activePlayer = 'gamer';
+      this.saveState('gamer');
     } else {
       GamePlay.showMessage('Вы проиграли :(');
       this.endGame();
     }
     this.updateScores();
     this.updateLevel();
-    this.stateService.save(this.gameState);
   }
 
   endGame() {
@@ -207,7 +213,7 @@ export default class GameController {
 
   levelUp() {
     GamePlay.showMessage('Поздравляю! Вы прошли уровень!');
-    const gamerTeam = this.gameState.chars.filter((item) => item.character.team === 'gamer' && item.character.health > 0);
+    const gamerTeam = GameState.chars.filter((item) => item.character.team === 'gamer' && item.character.health > 0);
 
     gamerTeam.forEach((item) => {
       item.character.level += 1;
@@ -222,7 +228,7 @@ export default class GameController {
     });
 
     let gamerNewMember = [];
-    if (this.gameState.level === 2) {
+    if (GameState.level === 2) {
       gamerNewMember = this.getPositionedCharacters('gamer', 1);
     } else {
       gamerNewMember = this.getPositionedCharacters('gamer', 2);
@@ -231,17 +237,18 @@ export default class GameController {
 
     const npcTeam = this.getPositionedCharacters('npc', gamerTeam.length);
     this.jointTeam = [...gamerTeam, ...npcTeam];
-    this.drawTheme(this.gameState.level);
+    this.drawTheme(GameState.level);
     this.gamePlay.redrawPositions(this.jointTeam);
+    this.saveState('gamer');
   }
 
   npcActions() {
     const chars = [];
     const charsHealth = [];
-    for (let i = 0; i < this.gameState.chars.length; i += 1) {
-      const item = this.gameState.chars[i];
+    for (let i = 0; i < GameState.chars.length; i += 1) {
+      const item = GameState.chars[i];
       if (item.character.team === 'npc' && item.character.health > 0) {
-        chars.push(this.gameState.chars[i]);
+        chars.push(GameState.chars[i]);
         charsHealth.push(item.character.health);
       }
     }
@@ -266,7 +273,7 @@ export default class GameController {
 
     let goZone = this.getZone(index, cellsQuantity);
     const positions = [];
-    this.gameState.chars.forEach((item) => positions.push(item.position));
+    GameState.chars.forEach((item) => positions.push(item.position));
     goZone = goZone.filter((item) => item >= 0 && item < 64 && !positions.includes(item));
 
     const cell = Math.floor(Math.random() * goZone.length);
@@ -274,17 +281,15 @@ export default class GameController {
     this.jointTeam[char].position = goZone[cell];
     this.gamePlay.redrawPositions(this.jointTeam);
 
-    this.gameState.chars = this.jointTeam;
-    this.gameState.activePlayer = 'gamer';
-    this.stateService.save(this.gameState);
+    this.saveState('gamer');
   }
 
   findNpcEnemy(index, character) {
     const enemies = [];
-    for (let i = 0; i < this.gameState.chars.length; i += 1) {
-      const item = this.gameState.chars[i];
+    for (let i = 0; i < GameState.chars.length; i += 1) {
+      const item = GameState.chars[i];
       if (item.character.team === 'gamer' && item.character.health > 0) {
-        enemies.push(this.gameState.chars[i]);
+        enemies.push(GameState.chars[i]);
       }
     }
 
@@ -338,12 +343,9 @@ export default class GameController {
           this.chosenCharacterCell = -1;
         }
       }
-      this.jointTeam = this.jointTeam.filter((item) => item.character.health >= 0);
-
-      this.gameState.chars = this.jointTeam;
-      this.stateService.save(this.gameState);
-
+      this.jointTeam = this.jointTeam.filter((item) => item.character.health > 0);
       this.gamePlay.redrawPositions(this.jointTeam);
+      this.saveState('npc');
       this.checkLevelUp();
     });
   }
@@ -409,12 +411,14 @@ export default class GameController {
     // TODO: react to mouse leave
     this.gamePlay.hideCellTooltip(index);
     this.gamePlay.setCursor(cursors.auto);
-    const cellClass = this.gamePlay.cells[index].className;
-    if (cellClass.includes('selected-green')) {
-      this.gamePlay.deselectCell(index);
-    }
-    if (cellClass.includes('selected-red')) {
-      this.gamePlay.deselectCell(index);
+    if (this.gamePlay.cells[index]) {
+      const cellClass = this.gamePlay.cells[index].className;
+      if (cellClass.includes('selected-green')) {
+        this.gamePlay.deselectCell(index);
+      }
+      if (cellClass.includes('selected-red')) {
+        this.gamePlay.deselectCell(index);
+      }
     }
   }
 
@@ -423,9 +427,7 @@ export default class GameController {
     this.jointTeam[char].position = index;
     this.gamePlay.redrawPositions(this.jointTeam);
 
-    this.gameState.chars = this.jointTeam;
-    this.gameState.activePlayer = 'npc';
-    this.stateService.save(this.gameState);
+    this.saveState('npc');
 
     this.chosenCharacterCell = index;
     const selectedCell = this.gamePlay.cells.indexOf(document.querySelector('.selected-yellow'));
@@ -463,10 +465,8 @@ export default class GameController {
       this.jointTeam[opponent].character.health -= damage;
       this.jointTeam = this.jointTeam.filter((item) => item.character.health > 0);
 
-      this.gameState.chars = this.jointTeam;
-      this.stateService.save(this.gameState);
-
       this.gamePlay.redrawPositions(this.jointTeam);
+      this.saveState('gamer');
       this.checkLevelUp();
     });
   }
@@ -541,8 +541,8 @@ export default class GameController {
 
   countChars(player) {
     let number = 0;
-    for (let i = 0; i < this.gameState.chars.length; i += 1) {
-      const item = this.gameState.chars[i];
+    for (let i = 0; i < this.jointTeam.length; i += 1) {
+      const item = this.jointTeam[i];
       if (item.character.team === player && item.character.health > 0) {
         number += 1;
       }

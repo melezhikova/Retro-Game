@@ -1,6 +1,9 @@
 import calcTileType from '../utils';
 import Character from '../Character';
 import Bowman from '../bowman';
+import GameController from '../GameController';
+import GamePlay from '../GamePlay';
+import GameStateService from '../GameStateService';
 
 test('checking calcTileType1', () => {
   expect(calcTileType(0, 8)).toBe('top-left');
@@ -50,4 +53,27 @@ test('should create Bowman without Error', () => {
     defence: 25,
   };
   expect(received).toEqual(expected);
+});
+
+test('курсор покидает ячейку', () => {
+  const gamePlay = new GamePlay();
+  const stateService = new GameStateService(localStorage);
+  const gameCtrl = new GameController(gamePlay, stateService);
+
+  gameCtrl.gamePlay.hideCellTooltip = jest.fn();
+  gamePlay.setCursor = jest.fn();
+  gameCtrl.onCellLeave(0);
+  expect(gameCtrl.gamePlay.hideCellTooltip).toBeCalled();
+});
+
+test('успешная/неуспешная загрузка', () => {
+  const gamePlay = new GamePlay();
+  const stateService = new GameStateService(localStorage);
+  const gameCtrl = new GameController(gamePlay, stateService);
+
+  jest.spyOn(window, 'alert').mockReturnValue();
+
+  stateService.userLoad = jest.fn();
+  gameCtrl.onLoadGameClick();
+  expect(window.alert).toHaveBeenCalledWith('Нет сохраненных игр');
 });

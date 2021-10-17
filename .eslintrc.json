@@ -13,7 +13,8 @@
     ],
     "no-param-reassign": [
       "error", 
-      { "props": true, "ignorePropertyModificationsFor": ["item"] }
+      { "props": true, "ignorePropertyModificationsFor": ["item", "enemy"]}
+  
     ]
   }
 }
