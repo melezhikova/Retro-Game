@@ -1,6 +1,6 @@
 # Retro Game
 
-Ссылка на игру: https://melezhikova.github.io/js-advanced-diploma/
+Ссылка на игру: https://melezhikova.github.io/Retro-Game/
 
 ## Концепция игры
 
